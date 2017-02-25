@@ -13,7 +13,7 @@
     data_dirs: [ "/", "/var/log", "/mnt" ]
 
   tasks:
-    - name: demo Jinja2
+    - name: demo Jinja2 basic conditionals
       pause:
         prompt: "{{ lookup('template', 'j2/demo.j2') }}"
 
@@ -21,6 +21,10 @@
       debug:
         msg: "API = deftunix{{ 'v2' if feature.enabled else '' }}"
 
-    - name: data dirs Jinja2
+    - name: data dirs Jinja2 loops
       pause:
         prompt: "{{ lookup('template', 'j2/demo-dirs.j2') }}"
+
+    - name: filtering loop items
+      pause:
+        prompt: "{{ lookup('template', 'j2/demo-loop.j2') }}"
