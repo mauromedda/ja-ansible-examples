@@ -19,6 +19,10 @@ It's a working progress.
 
   See the `tower-install` folder for a simple helper script to test Ansible Tower
 
+## Ansible feature example
+
+  See the `ansible-playbooks` folder for a simple set of feature examples
+
 ## Author
 
 Mauro Medda aka deftunix < medda.mauro at gmail dot com >
