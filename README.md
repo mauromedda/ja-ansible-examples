@@ -15,7 +15,9 @@ It's a working progress.
 
 ## Ansible installation
 
-See the `ansible-install` folder for a simple helper script.
+  See the `ansible-install` folder for a simple helper script
+
+  See the `tower-install` folder for a simple helper script to test Ansible Tower
 
 ## Author
 
