@@ -1,6 +1,15 @@
 #!/bin/bash
+#
 # Script: ansible-install.sh
-# Description: A simple bash script that install Ansible
+# Author: Mauro Medda <mauro.medda at yoox.com >
+# Version: 0.1A
+# Date: Sat Feb 25 2016
+# Purpose: A simple bash script that install Ansible
+#
+#
+# Revisions:
+#
+#
 
 #set -x                 # Enabling debug
 #set -e                 # Exit immediatly if an error occurred
@@ -8,7 +17,8 @@
 
 
 
-### Variables
+### Global Variables
+
 
 script=${0##*/}
 log=/tmp/.${script}.$$.log
