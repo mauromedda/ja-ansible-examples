@@ -1,4 +1,6 @@
-# Play order execution
+# Some basics on playbook and templates
+
+## Play order execution
 
 Ansible is designed to be simple to understand and usage.
 
@@ -26,14 +28,36 @@ Indeptendent from the order in which these blocks appears in the playbook, they
 will be process in the order above.
 The order.yml playbook contains all the operations above.
 
-## Execution
+### Execution
 
 ```bash
 
-$ ansible-playbook order.yml
+$ ansible-playbook -i hosts order.yml
 
 ```
 
+## Templating
+
+Templating is the lifeblood of Ansible. From configuration file content to
+variable substitution in tasks, to conditional statements and beyond,
+templating comes into play with nearly every Ansible facet. The template engine
+in Ansible is Jinja2, a modern and designer-friendly templating language for
+Python.
+
+Advanced Jinja2 features:
+
+    - control structures
+    - data manipulation
+    - comparison
+
+
+### Execution
+
+```bash
+
+$ ansible-playbook -i hosts jinja2.yml
+
+```
 
 ## Author
 

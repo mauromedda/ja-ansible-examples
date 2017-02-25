@@ -1,0 +1,7 @@
+# data dirs
+{% if data_dirs %}
+{% for dir in data_dirs if dir != "/" %}
+data_dir = {{ dir }}
+{% endfor %}
+{% endif %}
+

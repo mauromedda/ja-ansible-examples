@@ -1,0 +1,26 @@
+---
+- name: test jinja2
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    feature:
+      enabled: true
+    setting: a_val
+    another_setting: b_val
+
+    data_dirs: [ "/", "/var/log", "/mnt" ]
+
+  tasks:
+    - name: demo Jinja2
+      pause:
+        prompt: "{{ lookup('template', 'j2/demo.j2') }}"
+
+    - name: inline conditionals
+      debug:
+        msg: "API = deftunix{{ 'v2' if feature.enabled else '' }}"
+
+    - name: data dirs Jinja2
+      pause:
+        prompt: "{{ lookup('template', 'j2/demo-dirs.j2') }}"
