@@ -1,0 +1,4 @@
+*.retry
+vagrant/
+vagrant_ansible_inventory_default
+*.cache
