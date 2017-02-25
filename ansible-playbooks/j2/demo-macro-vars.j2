@@ -1,0 +1,32 @@
+# Macro varargs, kwargs, caller
+
+{% macro test() %}
+   {{ varargs }}
+   {{ test.name }}
+   {{ test.catch_varargs }}
+{% endmacro %}
+
+{{ test('hello', 'world!') }}
+
+{% macro test2(say='hello',var_name) %}
+   {{ test2.name }}
+   {{ test2.defaults }}
+   {{ test2.arguments }}
+   {{ var_name }}
+   {{ kwargs }}
+   {{ test2.catch_kwargs }}
+{% endmacro %}
+
+{{ test2(var_name='world') }}
+
+
+{% macro test3() %}
+Text from the caller follow
+TEXT FROM CALLER
+{{ caller() }}
+{% endmacro %}
+
+{% call test3() %}
+KALLER TEXT
+USEFUL FOR CODE REPETED
+{% endcall %}

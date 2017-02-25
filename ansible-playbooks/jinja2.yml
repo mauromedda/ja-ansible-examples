@@ -28,3 +28,11 @@
     - name: filtering loop items
       pause:
         prompt: "{{ lookup('template', 'j2/demo-loop.j2') }}"
+
+    - name: jinja2 macro. The function-like feature
+      pause:
+        prompt: "{{ lookup('template', 'j2/demo-macro.j2') }}"
+
+    - name: jinja2 macro vars. varargs, kwargs, caller
+      pause:
+        prompt: "{{ lookup('template', 'j2/demo-macro-vars.j2') }}"

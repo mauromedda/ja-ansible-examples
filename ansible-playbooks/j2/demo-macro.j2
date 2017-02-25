@@ -1,0 +1,17 @@
+# loop index
+
+###
+### Define Macro
+###
+{% macro comma(loop) %}
+{{ ',' if not loop.last else '' }}
+{%- endmacro -%}
+{% if data_dirs %}
+{% for dir in data_dirs if dir != "/" %}
+{% if loop.first %}
+data_dir = {{ dir }}{{ comma(loop) }}
+{% else %}
+           {{ dir }}{{ comma(loop) }}
+{% endif %}
+{% endfor %}
+{% endif %}
