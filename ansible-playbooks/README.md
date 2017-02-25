@@ -58,6 +58,18 @@ Advanced Jinja2 features:
 $ ansible-playbook -i hosts jinja2.yml
 
 ```
+## Filter
+
+Another important built-in feature of Ansible are the filters. The filters
+permit us to change the variables during the run.
+
+### Execution
+
+```bash
+
+$ ansible-playook filters.yml
+
+```
 
 ## Author
 

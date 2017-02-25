@@ -1,0 +1,81 @@
+---
+- name: test filters
+  hosts: all
+  gather_facts: false
+  become: false
+
+  vars:
+    feature:
+      enabled: true
+    setting: a_val
+    another_setting: b_val
+    encoded: Q0lBT05F
+
+    data_dirs: [ "/", "/var/log", "/mnt" ]
+
+  tasks:
+    - name: count filter
+      debug:
+        msg: "{{ play_hosts | count }}"
+
+    - name: default filter
+      debug:
+        msg: "{{ undefined_var | default('default_COOL') }}"
+      register: default_filter
+
+    - name: random filter
+      debug:
+        msg: "{{ data_dirs | random }}"
+
+    ## tasks exit with the following basic status
+    ## success, failed, changed or skipped
+    - name: print if previous task change
+      debug:
+        msg: "default filter changed"
+      when: default_filter | changed
+      register: skip
+
+    - name: print if previus skipped
+      debug:
+        msg: "print if skipped"
+      when: skip | skipped
+      register: success
+
+    - name: print if prvious success
+      debug:
+        msg: "print if success"
+      when: success | success
+
+    - name: shuffle like random but return entire list
+      debug:
+        msg: "{{ data_dirs | shuffle }}"
+
+    - name: another random test
+      debug:
+        msg: "{{ groups['eu-west-1'] | random }}"
+      run_once: true
+
+    - name: test basename filter
+      debug:
+        msg: "{{ '/var/log/mail.log' | basename }}"
+
+    - name: test dirname filter
+      debug:
+        msg: "{{ '/var/log/mail.log' | dirname }}"
+
+    - name: test dirname filter
+      debug:
+        msg: "{{ '~/meddam' | expanduser }}"
+
+    - name: base64 uncode| very useful with slurp
+      debug:
+        var: encoded | b64decode
+
+    - name: gather hostname
+      command: hostname -f
+      register: hname
+
+    - name: search for ansible in hostname
+      debug:
+        msg: "name match ansible - {{ hname.stdout }}"
+      when: hname.stdout | search('ansible')

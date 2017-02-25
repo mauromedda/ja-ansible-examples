@@ -30,3 +30,19 @@ TEXT FROM CALLER
 KALLER TEXT
 USEFUL FOR CODE REPETED
 {% endcall %}
+
+
+###
+### Create inventory
+###
+
+{% macro inventory(group, hosts) %}
+[{{ group }}]
+{% for host in hosts %}
+{{ host }} {{ caller(host) }}
+{% endfor %}
+{% endmacro %}
+
+{% call(host) inventory('web',['host1','host2', 'host3']) %}
+ansible_ssh_host={{ host }}.example.com ansible_ssh_user=root
+{% endcall %}
