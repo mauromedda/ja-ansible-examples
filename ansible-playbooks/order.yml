@@ -1,0 +1,37 @@
+---
+- name: playbook order
+  hosts: all
+  become: false
+  gather_facts: false
+
+  vars:
+    a_var: deftunix
+
+  pre_tasks:
+
+    - name: this is a pretask
+      debug:
+        msg: "Pre-task"
+      changed_when: true
+      notify: say hi
+
+  roles:
+    - deftunix
+
+  tasks:
+    - name: task
+      debug: msg=" a task"
+      changed_when: true
+      notify: say hi
+
+  post_tasks:
+
+    - name: this is a pretask
+      debug:
+        msg: "Pre-task"
+      changed_when: true
+      notify: say hi
+
+  handlers:
+    - name: say hi
+      debug: msg="ciao"

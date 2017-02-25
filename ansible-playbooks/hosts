@@ -1,0 +1,12 @@
+frontend.example.net ansible_ssh_host=127.0.0.1
+backend.example.net ansible_ssh_host=127.0.0.2
+database.example.net ansible_ssh_host=127.0.0.3
+
+[web]
+frontend.example.net
+
+[app]
+backend.example.net
+
+[db]
+database.example.net

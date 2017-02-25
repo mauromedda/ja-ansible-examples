@@ -1,0 +1,4 @@
+- name: print defaults var
+  debug:
+    var: deftunix_name
+  notify: role says
