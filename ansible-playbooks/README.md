@@ -71,6 +71,27 @@ $ ansible-playook filters.yml
 
 ```
 
+## Errors management
+
+We have two main ways to define errors condition and manage playbook errors.
+The first is ignore_errors (true, false). When it is true all module errors
+will be ignored.
+
+The second is failed_when, that permit us to set conditions for fails and
+be more and more accurate.
+
+failed_when is very useful when you use shell or command module.
+
+### Execution
+
+
+```bash
+
+$ ansible-playbook errors.yml
+
+```
+
+
 ## Author
 
 Mauro Medda aka deftunix < medda.mauro at gmail dot com >

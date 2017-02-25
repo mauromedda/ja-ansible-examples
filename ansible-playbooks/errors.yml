@@ -1,0 +1,18 @@
+---
+- hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    ### test the ignore error and the error condition definition
+    - name: broken url
+      uri:
+        url: http://myhost.localdomain
+      ignore_errors: true
+    ### failed_when check return code of shell command
+
+    - name: check not existent folder
+      shell: ls /tmp/not_exist
+      register: ls_cmd_st
+      failed_when: ls_cmd_st.rc not in (0, 1)
+
