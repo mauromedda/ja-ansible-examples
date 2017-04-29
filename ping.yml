@@ -1,0 +1,8 @@
+---
+- name: ping play
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: ping localhost
+      ping:
