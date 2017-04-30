@@ -1,0 +1,156 @@
+#!/bin/env bash
+
+## Global job vars
+
+rundeck_job_home=/var/rundeck/projects
+rundeck_job_ansible_plb="${rundeck_job_home}/@job.project@/playbooks"
+rundeck_job_time=$(date +%Y%M%d%S)
+rundeck_pk_perm="rundeck_600"
+
+temp01=/tmp/temp01.$$.log           # contains the rpm list
+
+
+## Ansible vars
+export ANSIBLE_FORCE_COLOR=1
+export ANSIBLE_RETRY_FILES_ENABLED=False
+export ANSIBLE_REMOTE_USER=${RD_OPTION_USER:-vagrant}
+export ANSIBLE_PRIVATE_KEY_FILE="/var/lib/rundeck/var/storage/content/keys/pks/${RD_OPTION_PK:-${ANSIBLE_REMOTE_USER}.pem}"
+export ANSIBLE_INVENTORY="rundeck_job_ansible_plb="${rundeck_job_home}/@job.project@/hosts"
+export ANSIBLE_SSH_ARGS="-o ControlMaster=no \
+  -o UserKnownHostsFile=/dev/null \
+  -o StrictHostKeyChecking=no \
+  -o ServerAliveInterval=64 \
+  -o ServerAliveCountMax=1024 \
+  -o Compression=no \
+  -o TCPKeepAlive=yes \
+  -o VerifyHostKeyDNS=no \
+  -o ForwardX11=no \
+  -o ForwardAgent=yes"
+
+ANSIBLE_PLAYBOOK="ansible-playbook"
+
+## Global functions
+
+Log() {
+  MSG=$1
+  ERRID=${2}
+  if [[ -z "${ERRID}" ]]; then
+     echo -e "[INFO] ${MSG}"
+  else
+     echo -e "[ERR=${ERRID}] ${MSG}"
+  fi
+}
+
+Cleanup() {
+    rm -f ${temp01}
+	if [[ -d "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" ]]; then
+	( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" &&
+	  if git branch | grep ^\* | grep -v master ; then
+	    git checkout master
+	    git branch -D rundeck_${rundeck_job_time}_${RD_OPTION_BRANCH}
+	  fi
+    )
+	fi
+}
+
+Sanitize_ownership_pk() {
+	st_pk=$( stat --format=%G_%a ${ANSIBLE_PRIVATE_KEY_FILE} )
+	if [[ "${st_pk}" != ${rundeck_pk_perm} ]]; then
+	  Log "Fix ownership and permission ${ANSIBLE_PRIVATE_KEY_FILE}"
+	  chown ${rundeck_pk_perm%%_*}:${rundeck_pk_perm%%_*} chmod 0${rundeck_pk_perm##*_} ${ANSIBLE_PRIVATE_KEY_FILE}
+	  return 0
+	fi
+	return 0
+}
+
+Get_Ansible_Playbook_From_GIT() {
+	if [[ -d "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" ]]; then
+	  Log "Update local repo code."
+	  rc=$( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" && git pull  &> /dev/null ; echo $?)
+	  if [[ ${rc} -ne 0 ]]; then
+	    Log "Working directory update failed." 005
+		exit 5
+	  fi
+	  return 0
+	elif git ls-remote ${RD_OPTION_SCM}  &> /dev/null  ; then
+	  Log "Clone remote repo in ${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}"
+	  rc=$(cd "${rundeck_job_ansible_plb}" && git clone ${RD_OPTION_SCM} &> /dev/null; echo $?)
+	  if [[ ${rc} -ne 0 ]]; then
+		Log "Repo ${RD_OPTION_SCM} clone failed." 006
+		exit 6
+	  fi
+	else
+	  Log "No remote repo available." 007
+	  exit 7
+	fi  
+
+	scm_branch_heads=( $( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" && git branch -r | egrep -v "^HEAD|master" | sed -r 's,\s+origin/,,g' ) )
+
+	if [[ " ${scm_branch_heads[@]} " =~ " ${RD_OPTION_BRANCH} " ]]; then
+	  Log "Checkout ${RD_OPTION_BRANCH} branch in rundeck_${rundeck_job_time}_${RD_OPTION_BRANCH}."
+	  ( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" &&
+		git checkout -b rundeck_${rundeck_job_time}_${RD_OPTION_BRANCH} origin/${RD_OPTION_BRANCH}
+	  )
+	fi
+
+	return 0
+}
+
+Run_Ansible_Playbook() {
+   local ANSIBLE_INV=""
+   
+   ANSIBLE_PLAYBOOK_SCM="$1"
+   
+   [[ "${ANSIBLE_PLAYBOOK_SCM}" == GIT ]] && rudeck_job_ansible_playbook_dir="${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" || rudeck_job_ansible_playbook_dir="${rundeck_job_ansible_plb}"
+   if [[ -f  "${rudeck_job_ansible_playbook_dir}/${RD_OPTION_PLAYBOOK}" ]]; then
+   (
+	 cd "${rudeck_job_ansible_playbook_dir}" &&
+	 if [[ -d hosts ]]; then
+	   ANSIBLE_INV="-i hosts"
+	 elif [[ -f inventory ]]; then
+	   ANSIBLE_INV="-i inventory"
+	 fi
+	 ${ANSIBLE_PLAYBOOK} ${ANSIBLE_INV} ${RD_OPTION_PLAYBOOK} --limits "${RD_OPTION_TARGETS}"
+	 )
+	else
+	  Log "Ansible playbook load failed. File not found." 009
+	fi
+}
+
+
+trap 'Cleanup' 0 1 2 9 15
+
+if which rpm &> /dev/null ; then
+  rpm -qa > ${temp01}
+else
+  Log "Not RPM distro." 001
+  exit 1
+fi
+
+if grep -q git ; then
+  rc=$(sudo yum install -y git &> /dev/null ; echo $? )
+  if [[ ${rc} -eq 0 ]]; then
+    Log "GIT installation finished."
+  else
+    Log "GIT installation failed." 002
+  fi
+else
+  Log "GIT already installed."
+fi
+
+[[ -d "${rundeck_job_ansible_plb}" ]] || mkdir -p "${rundeck_job_ansible_plb}"
+
+Sanitize_ownership_pk
+
+case "${RD_OPTION_SCM_TYPE}" in
+  GIT)
+	Get_Ansible_Playbook_From_GIT
+	Run_Ansible_Playbook "${RD_OPTION_SCM_TYPE}"
+	;;
+  *)
+    Run_Ansible_Playbook "${RD_OPTION_SCM_TYPE}"
+	;;
+esac
+
+Cleanup
+exit 0
