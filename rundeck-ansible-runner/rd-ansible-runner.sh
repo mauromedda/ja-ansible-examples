@@ -1,5 +1,5 @@
 #!/bin/env bash
-
+set -x
 ## Global job vars
 
 rundeck_job_home=/var/rundeck/projects
@@ -15,7 +15,8 @@ export ANSIBLE_FORCE_COLOR=1
 export ANSIBLE_RETRY_FILES_ENABLED=False
 export ANSIBLE_REMOTE_USER=${RD_OPTION_USER:-vagrant}
 export ANSIBLE_PRIVATE_KEY_FILE="/var/lib/rundeck/var/storage/content/keys/pks/${RD_OPTION_PK:-${ANSIBLE_REMOTE_USER}.pem}"
-export ANSIBLE_INVENTORY="rundeck_job_ansible_plb="${rundeck_job_home}/@job.project@/hosts"
+export ANSIBLE_INVENTORY='rundeck_job_ansible_plb="${rundeck_job_home}/@job.project@/hosts"'
+
 export ANSIBLE_SSH_ARGS="-o ControlMaster=no \
   -o UserKnownHostsFile=/dev/null \
   -o StrictHostKeyChecking=no \
@@ -43,8 +44,8 @@ Log() {
 
 Cleanup() {
     rm -f ${temp01}
-	if [[ -d "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" ]]; then
-	( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" &&
+	if [[ -d "${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}" ]]; then
+	( cd "${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}" &&
 	  if git branch | grep ^\* | grep -v master ; then
 	    git checkout master
 	    git branch -D rundeck_${rundeck_job_time}_${RD_OPTION_BRANCH}
@@ -57,26 +58,26 @@ Sanitize_ownership_pk() {
 	st_pk=$( stat --format=%G_%a ${ANSIBLE_PRIVATE_KEY_FILE} )
 	if [[ "${st_pk}" != ${rundeck_pk_perm} ]]; then
 	  Log "Fix ownership and permission ${ANSIBLE_PRIVATE_KEY_FILE}"
-	  chown ${rundeck_pk_perm%%_*}:${rundeck_pk_perm%%_*} chmod 0${rundeck_pk_perm##*_} ${ANSIBLE_PRIVATE_KEY_FILE}
+	  chown ${rundeck_pk_perm%%_*}:${rundeck_pk_perm%%_*} ${ANSIBLE_PRIVATE_KEY_FILE} && chmod ${rundeck_pk_perm##*_} ${ANSIBLE_PRIVATE_KEY_FILE}
 	  return 0
 	fi
 	return 0
 }
 
 Get_Ansible_Playbook_From_GIT() {
-	if [[ -d "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" ]]; then
+	if [[ -d "${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}" ]]; then
 	  Log "Update local repo code."
-	  rc=$( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" && git pull  &> /dev/null ; echo $?)
+	  rc=$( cd "${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}" && git pull  &> /dev/null ; echo $?)
 	  if [[ ${rc} -ne 0 ]]; then
 	    Log "Working directory update failed." 005
 		exit 5
 	  fi
 	  return 0
-	elif git ls-remote ${RD_OPTION_SCM}  &> /dev/null  ; then
-	  Log "Clone remote repo in ${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}"
-	  rc=$(cd "${rundeck_job_ansible_plb}" && git clone ${RD_OPTION_SCM} &> /dev/null; echo $?)
+	elif git ls-remote ${RD_OPTION_REPO_NAME}  &> /dev/null  ; then
+	  Log "Clone remote repo in ${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}"
+	  rc=$(cd "${rundeck_job_ansible_plb}" && git clone ${RD_OPTION_REPO_NAME} &> /dev/null; echo $?)
 	  if [[ ${rc} -ne 0 ]]; then
-		Log "Repo ${RD_OPTION_SCM} clone failed." 006
+		Log "Repo ${RD_OPTION_REPO_NAME} clone failed." 006
 		exit 6
 	  fi
 	else
@@ -84,11 +85,11 @@ Get_Ansible_Playbook_From_GIT() {
 	  exit 7
 	fi  
 
-	scm_branch_heads=( $( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" && git branch -r | egrep -v "^HEAD|master" | sed -r 's,\s+origin/,,g' ) )
+	scm_branch_heads=( $( cd "${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}" && git branch -r | egrep -v "^HEAD|master" | sed -r 's,\s+origin/,,g' ) )
 
 	if [[ " ${scm_branch_heads[@]} " =~ " ${RD_OPTION_BRANCH} " ]]; then
 	  Log "Checkout ${RD_OPTION_BRANCH} branch in rundeck_${rundeck_job_time}_${RD_OPTION_BRANCH}."
-	  ( cd "${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" &&
+	  ( cd "${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}" &&
 		git checkout -b rundeck_${rundeck_job_time}_${RD_OPTION_BRANCH} origin/${RD_OPTION_BRANCH}
 	  )
 	fi
@@ -101,19 +102,22 @@ Run_Ansible_Playbook() {
    
    ANSIBLE_PLAYBOOK_SCM="$1"
    
-   [[ "${ANSIBLE_PLAYBOOK_SCM}" == GIT ]] && rudeck_job_ansible_playbook_dir="${rundeck_job_ansible_plb}/${RD_OPTION_SCM##*/}" || rudeck_job_ansible_playbook_dir="${rundeck_job_ansible_plb}"
+   [[ "${ANSIBLE_PLAYBOOK_SCM}" == GIT ]] && rudeck_job_ansible_playbook_dir="${rundeck_job_ansible_plb}/${RD_OPTION_REPO_NAME##*/}" || rudeck_job_ansible_playbook_dir="${rundeck_job_ansible_plb}"
    if [[ -f  "${rudeck_job_ansible_playbook_dir}/${RD_OPTION_PLAYBOOK}" ]]; then
-   (
-	 cd "${rudeck_job_ansible_playbook_dir}" &&
-	 if [[ -d hosts ]]; then
-	   ANSIBLE_INV="-i hosts"
-	 elif [[ -f inventory ]]; then
-	   ANSIBLE_INV="-i inventory"
+   
+	 if [[ -d ${rudeck_job_ansible_playbook_dir}/hosts ]]; then
+	   ANSIBLE_INV="hosts"
+	 elif [[ -f ${rudeck_job_ansible_playbook_dir}/inventory ]]; then
+	   ANSIBLE_INV="inventory"
+	 else
+	   ANSIBLE_INV="${RD_OPTION_TARGET},"
 	 fi
-	 ${ANSIBLE_PLAYBOOK} ${ANSIBLE_INV} ${RD_OPTION_PLAYBOOK} --limits "${RD_OPTION_TARGETS}"
-	 )
-	else
+	 
+	   cd ${rudeck_job_ansible_playbook_dir} && ${ANSIBLE_PLAYBOOK} -i ${ANSIBLE_INV} ${RD_OPTION_PLAYBOOK} --limit "${RD_OPTION_TARGET}" || exit 666
+
+ 	else
 	  Log "Ansible playbook load failed. File not found." 009
+	  exit 009
 	fi
 }
 
@@ -133,6 +137,7 @@ if grep -q git ; then
     Log "GIT installation finished."
   else
     Log "GIT installation failed." 002
+    exit 002
   fi
 else
   Log "GIT already installed."
@@ -148,7 +153,7 @@ case "${RD_OPTION_SCM_TYPE}" in
 	Run_Ansible_Playbook "${RD_OPTION_SCM_TYPE}"
 	;;
   *)
-    Run_Ansible_Playbook "${RD_OPTION_SCM_TYPE}"
+    Run_Ansible_Playbook "${RD_OPTION_SCME_TYPE}"
 	;;
 esac
 
