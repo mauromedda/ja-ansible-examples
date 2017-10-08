@@ -1,0 +1,16 @@
+- hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+
+    - name: OS    | Update
+      yum: name=* state=latest
+
+    - name: HTTPD | Install
+      yum: name=httpd state=present
+
+    - name: HTTPD | Start
+      systemd:
+        name: httpd
+        enabled: true
+        state: started
